@@ -38,11 +38,6 @@ typedef float f32;
     (((color >> 8) & 0xFF) * (percent) / 100),           \
     ((color & 0xFF) * (percent) / 100)))
 
-#define NBE_U32_MIN(a, b) ((u32)((a) < (b) ? (a) : (b)))
-#define NBE_U32_MAX(a, b) ((u32)((a) > (b) ? (a) : (b)))
-#define NBE_F32_MIN(a, b) ((f32)((a) < (b) ? (a) : (b)))
-#define NBE_F32_MAX(a, b) ((f32)((a) > (b) ? (a) : (b)))
-
 #define NBE_STATIC_ASSERT(c, m) typedef char nbe_assert_##m[(c) ? 1 : -1]
 
 NBE_STATIC_ASSERT(sizeof(u8) == 1, u8_size_must_be_1);
@@ -51,7 +46,6 @@ NBE_STATIC_ASSERT(sizeof(f32) == 4, f32_size_must_be_4);
 
 #define NBE_FONT_GLYPH_WIDTH 13
 #define NBE_FONT_GLYPH_HEIGHT 30
-#define NBE_FONT_NUM_CHARS 95
 
 static u8 nbe_font[] = {
     0xFF, 0xF8, 0xFF, 0xF8, 0xFF, 0xF8, 0xFF, 0xF8, 0xFF, 0xF8, 0xFF, 0xF8,
