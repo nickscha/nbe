@@ -143,26 +143,12 @@ int start(int argc, char **argv)
                     nbe_textbuffer_event_toggle_line_numbers(&ctx);
                     break;
                 case VK_UP:
-                    if (ctx.cursor_scroll_y > 0)
-                    {
-                        ctx.cursor_scroll_y--;
-                        ctx.framebuffer_changed = 1;
-                    }
                     break;
                 case VK_DOWN:
-                    ctx.cursor_scroll_y++;
-                    ctx.framebuffer_changed = 1;
                     break;
                 case VK_LEFT:
-                    if (ctx.cursor_scroll_x > 0)
-                    {
-                        ctx.cursor_scroll_x--;
-                        ctx.framebuffer_changed = 1;
-                    }
                     break;
                 case VK_RIGHT:
-                    ctx.cursor_scroll_x++;
-                    ctx.framebuffer_changed = 1;
                     break;
                 case VK_ESCAPE:
                     return 0;

@@ -152,8 +152,6 @@ typedef struct nbe_context
 
   u32 font_scale;
 
-  u32 cursor_scroll_x;         /* horizontal scroll offset (in characters) */
-  u32 cursor_scroll_y;         /* vertical scroll offset (in lines) */
   u32 cursor_textbuffer_index; /* To which textbuffer position is the current cursor pointing */
 
   u32 line_number_width;
@@ -318,9 +316,6 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
   u32 col_index = col_start_index;
   u32 row_index = 0;
 
-  /* Skip lines if vertical scroll is implemented */
-  u32 current_line = 0;
-
   /* Iterate until we consumed all remaining chars OR until the visible rows are filled */
   while (i < remaining && row_index < cell_rows)
   {
@@ -335,41 +330,29 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Newline: move to start of next row */
     if (c == '\n')
     {
-      col_index = col_start_index;
-
-      ++current_line;
-
-      /* Skip lines above scroll_y */
-      if (current_line >= ctx->cursor_scroll_y)
-      {
-        ++row_index;
-      }
-
+      col_index = ctx->line_number_width;
+      ++row_index;
       continue;
     }
 
-    /* Only draw visible rows */
-    if (current_line < ctx->cursor_scroll_y)
+    /* Stop drawing if we fill the row area */
+    if (col_index >= cell_columns)
     {
-      ++col_index;
+      /* ignore overflow chars until next newline */
+      while (i < remaining && text[i] != '\n')
+      {
+        ++i;
+      }
       continue;
     }
 
-    /* Skip characters before horizontal scroll offset */
-    if (col_index >= ctx->cursor_scroll_x)
-    {
-      u32 draw_col = NBE_U32_MAX(col_index - ctx->cursor_scroll_x, ctx->line_number_width);
-
-      if (draw_col < cell_columns && row_index < cell_rows)
-      {
-        nbe_framebuffer_draw_character(
-            ctx,
-            draw_col * font_size,
-            row_index * font_size,
-            c,
-            color);
-      }
-    }
+    /* Draw the visible character */
+    nbe_framebuffer_draw_character(
+        ctx,
+        col_index * font_size,
+        row_index * font_size,
+        c,
+        color);
 
     ++col_index;
   }
