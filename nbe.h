@@ -345,16 +345,18 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_up(nbe_context *ctx)
 {
   u32 cur = ctx->cursor_textbuffer_index_current;
   u32 line_start = nbe_textbuffer_line_start(ctx, cur);
+  u32 target_col;
+  u32 prev_end, prev_start, prev_len;
 
   if (line_start == 0)
   {
     return;
   }
 
-  u32 target_col = nbe_cursor_column(ctx, cur);
-  u32 prev_end = line_start - 1;
-  u32 prev_start = nbe_textbuffer_line_start(ctx, prev_end);
-  u32 prev_len = prev_end - prev_start;
+  target_col = nbe_cursor_column(ctx, cur);
+  prev_end = line_start - 1;
+  prev_start = nbe_textbuffer_line_start(ctx, prev_end);
+  prev_len = prev_end - prev_start;
 
   if (target_col > prev_len)
   {
@@ -370,6 +372,8 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_down(nbe_context *ctx)
   u32 cur = ctx->cursor_textbuffer_index_current;
   u32 len = ctx->textbuffer_length;
   u32 line_end = nbe_textbuffer_line_end(ctx, cur);
+  u32 target_col;
+  u32 next_start, next_end, next_len;
 
   /* No next line */
   if (line_end >= len)
@@ -377,10 +381,10 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_down(nbe_context *ctx)
     return;
   }
 
-  u32 target_col = nbe_cursor_column(ctx, cur);
-  u32 next_start = line_end + 1;
-  u32 next_end = nbe_textbuffer_line_end(ctx, next_start);
-  u32 next_len = next_end - next_start;
+  target_col = nbe_cursor_column(ctx, cur);
+  next_start = line_end + 1;
+  next_end = nbe_textbuffer_line_end(ctx, next_start);
+  next_len = next_end - next_start;
 
   if (target_col > next_len)
   {

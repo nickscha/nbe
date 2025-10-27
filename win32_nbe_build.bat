@@ -4,7 +4,7 @@ REM ---------------------------------------------------------------------------
 REM GCC/Clang Build
 REM ---------------------------------------------------------------------------
 REM
-set DEF_COMPILER_FLAGS=-mconsole -march=native -mtune=native -std=c99 -pedantic -nodefaultlibs -nostdlib -mno-stack-arg-probe ^
+set DEF_COMPILER_FLAGS=-mconsole -march=native -mtune=native -std=c89 -pedantic -nodefaultlibs -nostdlib -mno-stack-arg-probe ^
 -Xlinker /STACK:0x100000,0x100000 ^
 -Xlinker /ENTRY:nostdlib_main ^
 -fno-builtin -ffreestanding -fno-asynchronous-unwind-tables -fuse-ld=lld ^

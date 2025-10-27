@@ -23,13 +23,18 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         if (g_ctx)
         {
+            u32 new_width, new_height;
+
             RECT rc;
             GetClientRect(hwnd, &rc);
-            u32 new_width = (u32)(rc.right - rc.left);
-            u32 new_height = (u32)(rc.bottom - rc.top);
+
+            new_width = (u32)(rc.right - rc.left);
+            new_height = (u32)(rc.bottom - rc.top);
 
             if (new_width == 0 || new_height == 0)
+            {
                 break;
+            }
 
             /* Free previous framebuffer if any */
             if (g_ctx->framebuffer)
@@ -86,6 +91,13 @@ static u8 textbuffer[TB_CAPACITY];
  */
 int start(int argc, char **argv)
 {
+    HWND hwnd;
+    MSG msg;
+    HDC hdc;
+    BITMAPINFO fb_bmi;
+
+    nbe_context ctx = {0};
+
     WNDCLASSA wc = {0};
     wc.lpfnWndProc = WinProc;
     wc.hInstance = GetModuleHandleA(0);
@@ -96,17 +108,15 @@ int start(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    HWND hwnd = CreateWindowExA(
+    hwnd = CreateWindowExA(
         0, wc.lpszClassName, wc.lpszClassName,
         WS_POPUP | WS_VISIBLE,
         50, 50,
         FB_WIDTH, FB_HEIGHT,
         0, 0, wc.hInstance, 0);
 
-    MSG msg;
-    HDC hdc = GetDC(hwnd);
+    hdc = GetDC(hwnd);
 
-    nbe_context ctx = {0};
     ctx.framebuffer_changed = 1;
     ctx.framebuffer = (u32 *)VirtualAlloc(0, FB_WIDTH * FB_HEIGHT * sizeof(u32), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     ctx.framebuffer_width = FB_WIDTH;
@@ -130,7 +140,9 @@ int start(int argc, char **argv)
         while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT)
+            {
                 return 0;
+            }
 
             if (msg.message == WM_CHAR)
             {
@@ -192,7 +204,6 @@ int start(int argc, char **argv)
 
         nbe_draw(&ctx);
 
-        BITMAPINFO fb_bmi;
         fb_bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         fb_bmi.bmiHeader.biWidth = (long)ctx.framebuffer_width;
         fb_bmi.bmiHeader.biHeight = (long)(-(int)ctx.framebuffer_height); /* top-down */
