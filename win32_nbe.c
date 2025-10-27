@@ -76,7 +76,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-#define FB_WIDTH 640
+#define FB_WIDTH 800
 #define FB_HEIGHT 480
 #define TB_CAPACITY 4096
 
@@ -124,7 +124,7 @@ int start(int argc, char **argv)
     ctx.textbuffer = textbuffer;
     ctx.textbuffer_capacity = TB_CAPACITY;
     ctx.textbuffer_length = 0;
-    ctx.font_scale = 2;
+    ctx.font_scale = 1.0f;
 
     g_ctx = &ctx;
 
@@ -132,8 +132,9 @@ int start(int argc, char **argv)
         &ctx,
         "This is a test of a very long line that has a very long text which exceeds 80 characters\n"
         "And this is the second row\n"
-        "another thest sdfs sif sa32k 4234 (r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n"
-        "test now a (tab)\t(tab)");
+        "another thest sdfs sif sa32k 4234%(r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n"
+        "test now a (tab)\t(tab)\n"
+        "!\"§$%&/()=?\n");
 
     for (;;)
     {
@@ -180,6 +181,12 @@ int start(int argc, char **argv)
                     break;
                 case VK_RETURN:
                     nbe_textbuffer_event_line_new(&ctx);
+                    break;
+                case 0x30:
+                    if (GetKeyState(VK_CONTROL) & 0x8000)
+                    {
+                        nbe_textbuffer_event_font_scale_reset(&ctx);
+                    }
                     break;
                 case VK_OEM_PLUS:
                 case VK_ADD:
