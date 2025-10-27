@@ -54,6 +54,15 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         return 0;
     }
+    break;
+
+    case WM_SYSKEYDOWN:
+        if (wParam == VK_F4 && (GetKeyState(VK_MENU) & 0x8000))
+        {
+            PostQuitMessage(0);
+            return 0;
+        }
+        break;
 
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -81,6 +90,7 @@ int start(int argc, char **argv)
     wc.lpfnWndProc = WinProc;
     wc.hInstance = GetModuleHandleA(0);
     wc.lpszClassName = "NBE";
+    wc.hCursor = LoadCursorA(0, IDC_ARROW);
     RegisterClassA(&wc);
 
     (void)argc;
@@ -88,8 +98,8 @@ int start(int argc, char **argv)
 
     HWND hwnd = CreateWindowExA(
         0, wc.lpszClassName, wc.lpszClassName,
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT,
+        WS_POPUP | WS_VISIBLE,
+        50, 50,
         FB_WIDTH, FB_HEIGHT,
         0, 0, wc.hInstance, 0);
 
@@ -112,7 +122,7 @@ int start(int argc, char **argv)
         &ctx,
         "This is a test of a very long line that has a very long text which exceeds 80 characters\n"
         "And this is the second row\n"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab\n");
+        "another thest sdfs sif sa32k 4234 (r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n");
 
     for (;;)
     {
@@ -130,13 +140,23 @@ int start(int argc, char **argv)
                 {
                     ctx.textbuffer[ctx.textbuffer_length++] = (u8)c;
                     ctx.cursor_textbuffer_index++;
-                    ctx.framebuffer_changed = 1;
                 }
             }
             else if (msg.message == WM_KEYDOWN)
             {
                 switch (msg.wParam)
                 {
+                case VK_F1:
+                    if (ctx.line_number_width == 5)
+                    {
+                        ctx.line_number_width = 0;
+                    }
+                    else
+                    {
+                        ctx.line_number_width = 5;
+                    }
+                    ctx.framebuffer_changed = 1;
+                    break;
                 case VK_UP:
                     if (ctx.cursor_scroll_y > 0)
                     {

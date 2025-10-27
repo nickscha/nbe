@@ -156,6 +156,8 @@ typedef struct nbe_context
   u32 cursor_scroll_y;         /* vertical scroll offset (in lines) */
   u32 cursor_textbuffer_index; /* To which textbuffer position is the current cursor pointing */
 
+  u32 line_number_width;
+
 } nbe_context;
 
 NBE_API NBE_INLINE void nbe_textbuffer_append(nbe_context *ctx, char *src)
@@ -210,16 +212,17 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, 
     for (j = 0; j < NBE_FONT_SIZE; ++j)
     {
 
-      if (row & (1 << j))
-      {
-        u32 xx, yy;
+      u32 xx, yy;
 
-        for (yy = 0; yy < ctx->font_scale; ++yy)
+      for (yy = 0; yy < ctx->font_scale; ++yy)
+      {
+        for (xx = 0; xx < ctx->font_scale; ++xx)
         {
-          for (xx = 0; xx < ctx->font_scale; ++xx)
-          {
-            nbe_framebuffer_draw_pixel(ctx, x + j * ctx->font_scale + xx, y + i * ctx->font_scale + yy, color);
-          }
+          nbe_framebuffer_draw_pixel(
+              ctx,
+              x + j * ctx->font_scale + xx,
+              y + i * ctx->font_scale + yy,
+              row & (1 << j) ? color : NBE_COLOR_RGB(40, 40, 40));
         }
       }
     }
@@ -241,7 +244,8 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
   u32 remaining = ctx->textbuffer_length;
 
   u32 i = 0;
-  u32 col_index = 0;
+  u32 col_start_index = ctx->line_number_width; /* Test */
+  u32 col_index = col_start_index;
   u32 row_index = 0;
 
   /* Skip lines if vertical scroll is implemented */
@@ -261,7 +265,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Newline: move to start of next row */
     if (c == '\n')
     {
-      col_index = 0;
+      col_index = col_start_index;
 
       ++current_line;
 
@@ -284,7 +288,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Skip characters before horizontal scroll offset */
     if (col_index >= ctx->cursor_scroll_x)
     {
-      u32 draw_col = col_index - ctx->cursor_scroll_x;
+      u32 draw_col = NBE_U32_MAX(col_index - ctx->cursor_scroll_x, ctx->line_number_width);
 
       if (draw_col < cell_columns && row_index < cell_rows)
       {
@@ -340,11 +344,34 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_cursor(nbe_context *ctx, u32 color)
 
   nbe_cursor_position(ctx, &cursor_x, &cursor_y);
 
+  cursor_x += ctx->line_number_width; /* Test column start index */
+
   for (y = 0; y < font_size; ++y)
   {
     for (x = 0; x < font_size; ++x)
     {
       nbe_framebuffer_draw_pixel(ctx, (cursor_x * font_size) + x, (cursor_y * font_size) + y, color);
+    }
+  }
+}
+
+NBE_API NBE_INLINE void nbe_framebuffer_draw_line_numbers(nbe_context *ctx, u32 color)
+{
+  u32 font_size = (NBE_FONT_SIZE * ctx->font_scale);
+  u32 cell_rows = ctx->framebuffer_height / font_size;
+
+  u32 x, y;
+
+  if (ctx->line_number_width < 2)
+  {
+    return;
+  }
+
+  for (y = 0; y < cell_rows; ++y)
+  {
+    for (x = 0; x < ctx->line_number_width - 1; ++x)
+    {
+      nbe_framebuffer_draw_character(ctx, x * font_size, y * font_size, '0', color);
     }
   }
 }
@@ -359,6 +386,7 @@ NBE_API NBE_INLINE void nbe_draw(nbe_context *ctx)
     ctx->framebuffer_changed = 0;
   }
 
+  nbe_framebuffer_draw_line_numbers(ctx, NBE_COLOR_RGB(252, 186, 3));
   nbe_framebuffer_draw_cursor(ctx, NBE_COLOR_RGB(140, 104, 4));
   nbe_framebuffer_draw_text(ctx, NBE_COLOR_RGB(252, 186, 3));
 }
