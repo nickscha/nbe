@@ -147,8 +147,10 @@ int start(int argc, char **argv)
                     nbe_textbuffer_event_char_delete(&ctx);
                     break;
                 case VK_UP:
+                    nbe_textbuffer_event_cursor_move_up(&ctx);
                     break;
                 case VK_DOWN:
+                    nbe_textbuffer_event_cursor_move_down(&ctx);
                     break;
                 case VK_LEFT:
                     nbe_textbuffer_event_cursor_move_left(&ctx);

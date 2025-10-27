@@ -193,6 +193,47 @@ NBE_API NBE_INLINE void nbe_cursor_position(nbe_context *ctx, u32 *x_out, u32 *y
   *y_out = y;
 }
 
+NBE_API NBE_INLINE u32 nbe_textbuffer_line_start(nbe_context *ctx, u32 index)
+{
+  while (index > 0 && ctx->textbuffer[index - 1] != '\n')
+  {
+    --index;
+  }
+
+  return index;
+}
+
+NBE_API NBE_INLINE u32 nbe_textbuffer_line_end(nbe_context *ctx, u32 index)
+{
+  u32 len = ctx->textbuffer_length;
+
+  while (index < len && ctx->textbuffer[index] != '\n')
+  {
+    ++index;
+  }
+
+  return index;
+}
+
+NBE_API NBE_INLINE u32 nbe_cursor_column(nbe_context *ctx, u32 index)
+{
+  u32 col = 0, i;
+
+  for (i = 0; i < index; ++i)
+  {
+    if (ctx->textbuffer[i] == '\n')
+    {
+      col = 0;
+    }
+    else
+    {
+      ++col;
+    }
+  }
+
+  return col;
+}
+
 NBE_API NBE_INLINE void nbe_textbuffer_event_char_add(nbe_context *ctx, char c)
 {
   u32 idx = ctx->cursor_textbuffer_index_current;
@@ -298,6 +339,55 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_toggle_line_numbers(nbe_context *ct
 NBE_API NBE_INLINE void nbe_textbuffer_event_line_new(nbe_context *ctx)
 {
   nbe_textbuffer_event_char_add(ctx, '\n');
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_up(nbe_context *ctx)
+{
+  u32 cur = ctx->cursor_textbuffer_index_current;
+  u32 line_start = nbe_textbuffer_line_start(ctx, cur);
+
+  /* Already on the first line */
+  if (line_start == 0)
+  {
+    return;
+  }
+
+  u32 target_col = nbe_cursor_column(ctx, cur);
+  u32 prev_end = line_start - 1;
+  u32 prev_start = nbe_textbuffer_line_start(ctx, prev_end);
+  u32 prev_len = prev_end - prev_start;
+
+  if (target_col > prev_len)
+    target_col = prev_len;
+
+  ctx->cursor_textbuffer_index_current = prev_start + target_col;
+  ctx->framebuffer_changed = 1;
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_down(nbe_context *ctx)
+{
+  u32 cur = ctx->cursor_textbuffer_index_current;
+  u32 len = ctx->textbuffer_length;
+  u32 line_end = nbe_textbuffer_line_end(ctx, cur);
+
+  /* No next line */
+  if (line_end >= len)
+  {
+    return;
+  }
+
+  u32 target_col = nbe_cursor_column(ctx, cur);
+  u32 next_start = line_end + 1;
+  u32 next_end = nbe_textbuffer_line_end(ctx, next_start);
+  u32 next_len = next_end - next_start;
+
+  if (target_col > next_len)
+  {
+    target_col = next_len;
+  }
+
+  ctx->cursor_textbuffer_index_current = next_start + target_col;
+  ctx->framebuffer_changed = 1;
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_left(nbe_context *ctx)
