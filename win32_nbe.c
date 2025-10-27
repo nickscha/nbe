@@ -129,21 +129,34 @@ int start(int argc, char **argv)
                 if (c >= 32 && c < 127 && ctx.textbuffer_length < ctx.textbuffer_capacity)
                 {
                     ctx.textbuffer[ctx.textbuffer_length++] = (u8)c;
+                    ctx.cursor_textbuffer_index++;
+                    ctx.framebuffer_changed = 1;
                 }
             }
             else if (msg.message == WM_KEYDOWN)
             {
                 switch (msg.wParam)
                 {
-                case VK_LEFT:
-                    if (ctx.scroll_x > 0)
+                case VK_UP:
+                    if (ctx.cursor_scroll_y > 0)
                     {
-                        ctx.scroll_x--;
+                        ctx.cursor_scroll_y--;
+                        ctx.framebuffer_changed = 1;
+                    }
+                    break;
+                case VK_DOWN:
+                    ctx.cursor_scroll_y++;
+                    ctx.framebuffer_changed = 1;
+                    break;
+                case VK_LEFT:
+                    if (ctx.cursor_scroll_x > 0)
+                    {
+                        ctx.cursor_scroll_x--;
                         ctx.framebuffer_changed = 1;
                     }
                     break;
                 case VK_RIGHT:
-                    ctx.scroll_x++;
+                    ctx.cursor_scroll_x++;
                     ctx.framebuffer_changed = 1;
                     break;
                 case VK_ESCAPE:
@@ -153,6 +166,8 @@ int start(int argc, char **argv)
                     {
                         ctx.textbuffer[ctx.textbuffer_length++] = ' ';
                         ctx.textbuffer[ctx.textbuffer_length++] = ' ';
+                        ctx.cursor_textbuffer_index += 2;
+                        ctx.framebuffer_changed = 1;
                     }
                     break;
 
@@ -162,6 +177,8 @@ int start(int argc, char **argv)
                     {
                         ctx.textbuffer_length--;
                         ctx.framebuffer_changed = 1;
+                        ctx.cursor_textbuffer_index--;
+                        ctx.framebuffer_changed = 1;
                     }
                     break;
 
@@ -170,6 +187,8 @@ int start(int argc, char **argv)
                     if (ctx.textbuffer_length < ctx.textbuffer_capacity)
                     {
                         ctx.textbuffer[ctx.textbuffer_length++] = '\n';
+                        ctx.cursor_textbuffer_index++;
+                        ctx.framebuffer_changed = 1;
                     }
                     break;
 
