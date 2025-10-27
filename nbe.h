@@ -291,14 +291,7 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_decrease(nbe_context *ct
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_toggle_line_numbers(nbe_context *ctx)
 {
-  if (ctx->line_number_width == 5)
-  {
-    ctx->line_number_width = 0;
-  }
-  else
-  {
-    ctx->line_number_width = 5;
-  }
+  ctx->line_number_width = ctx->line_number_width == 5 ? 0 : 5;
   ctx->framebuffer_changed = 1;
 }
 
@@ -432,6 +425,23 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Newline: move to start of next row */
     if (c == '\n')
     {
+      /* Draw cursor background if cursor is at this position */
+      if (col_index == cursor_col_index && row_index == cursor_row_index)
+      {
+        u32 yy, xx;
+        for (yy = 0; yy < font_size; ++yy)
+        {
+          for (xx = 0; xx < font_size; ++xx)
+          {
+            nbe_framebuffer_draw_pixel(
+                ctx,
+                col_index * font_size + xx,
+                row_index * font_size + yy,
+                NBE_COLOR_DARKEN(color, 60));
+          }
+        }
+      }
+
       col_index = ctx->line_number_width;
       ++row_index;
       continue;
@@ -465,14 +475,14 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
   /* Draw cursor background if it's at end of line / end of buffer */
   if (ctx->cursor_textbuffer_index_current == ctx->textbuffer_length)
   {
-    u32 font_size = (NBE_FONT_SIZE * ctx->font_scale);
     u32 x = cursor_col_index * font_size;
     u32 y = cursor_row_index * font_size;
+    u32 yy, xx;
 
     /* fill a full cell with cursor color */
-    for (u32 yy = 0; yy < font_size; ++yy)
+    for (yy = 0; yy < font_size; ++yy)
     {
-      for (u32 xx = 0; xx < font_size; ++xx)
+      for (xx = 0; xx < font_size; ++xx)
       {
         nbe_framebuffer_draw_pixel(ctx, x + xx, y + yy, NBE_COLOR_DARKEN(color, 60));
       }
