@@ -123,7 +123,7 @@ int start(int argc, char **argv)
         "This is a test of a very long line that has a very long text which exceeds 80 characters\n"
         "And this is the second row\n"
         "another thest sdfs sif sa32k 4234 (r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n"
-        "test");
+        "test now a (tab)\t(tab)");
 
     for (;;)
     {
