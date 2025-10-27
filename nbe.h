@@ -350,7 +350,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_pixel(nbe_context *ctx, u32 x, u32 
   }
 }
 
-NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, u32 y, u8 c, u32 color_fg, u32 color_bg)
+NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, u32 y, u8 c, u32 color_fg)
 {
   u32 uc = c;
   u8 *glyph;
@@ -376,11 +376,14 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, 
       {
         for (xx = 0; xx < ctx->font_scale; ++xx)
         {
-          nbe_framebuffer_draw_pixel(
-              ctx,
-              x + j * ctx->font_scale + xx,
-              y + i * ctx->font_scale + yy,
-              row & (1 << j) ? color_fg : color_bg);
+          if (row & (1 << j))
+          {
+            nbe_framebuffer_draw_pixel(
+                ctx,
+                x + j * ctx->font_scale + xx,
+                y + i * ctx->font_scale + yy,
+                color_fg);
+          }
         }
       }
     }
@@ -406,10 +409,26 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
   u32 col_index = col_start_index;
   u32 row_index = 0;
 
-  /* Get the current cursor position */
-  u32 cursor_col_index, cursor_row_index;
-  nbe_cursor_position(ctx, &cursor_col_index, &cursor_row_index);
-  cursor_col_index += ctx->line_number_width;
+  /* Draw the cursor */
+  {
+    u32 x, y, xx, yy;
+    u32 cursor_col_index, cursor_row_index;
+
+    nbe_cursor_position(ctx, &cursor_col_index, &cursor_row_index);
+    cursor_col_index += ctx->line_number_width;
+
+    x = cursor_col_index * font_size;
+    y = cursor_row_index * font_size;
+
+    /* fill a full cell with cursor color */
+    for (yy = 0; yy < font_size; ++yy)
+    {
+      for (xx = 0; xx < font_size; ++xx)
+      {
+        nbe_framebuffer_draw_pixel(ctx, x + xx, y + yy, NBE_COLOR_DARKEN(color, 60));
+      }
+    }
+  }
 
   /* Iterate until we consumed all remaining chars OR until the visible rows are filled */
   while (i < remaining && row_index < cell_rows)
@@ -425,23 +444,6 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Newline: move to start of next row */
     if (c == '\n')
     {
-      /* Draw cursor background if cursor is at this position */
-      if (col_index == cursor_col_index && row_index == cursor_row_index)
-      {
-        u32 yy, xx;
-        for (yy = 0; yy < font_size; ++yy)
-        {
-          for (xx = 0; xx < font_size; ++xx)
-          {
-            nbe_framebuffer_draw_pixel(
-                ctx,
-                col_index * font_size + xx,
-                row_index * font_size + yy,
-                NBE_COLOR_DARKEN(color, 60));
-          }
-        }
-      }
-
       col_index = ctx->line_number_width;
       ++row_index;
       continue;
@@ -464,29 +466,9 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
         col_index * font_size,
         row_index * font_size,
         c,
-        color,
-        (col_index == cursor_col_index && row_index == cursor_row_index)
-            ? NBE_COLOR_DARKEN(color, 60)
-            : NBE_COLOR_RGB(40, 40, 40));
+        color);
 
     ++col_index;
-  }
-
-  /* Draw cursor background if it's at end of line / end of buffer */
-  if (ctx->cursor_textbuffer_index_current == ctx->textbuffer_length)
-  {
-    u32 x = cursor_col_index * font_size;
-    u32 y = cursor_row_index * font_size;
-    u32 yy, xx;
-
-    /* fill a full cell with cursor color */
-    for (yy = 0; yy < font_size; ++yy)
-    {
-      for (xx = 0; xx < font_size; ++xx)
-      {
-        nbe_framebuffer_draw_pixel(ctx, x + xx, y + yy, NBE_COLOR_DARKEN(color, 60));
-      }
-    }
   }
 }
 
@@ -506,7 +488,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_line_numbers(nbe_context *ctx, u32 
   {
     for (x = 0; x < ctx->line_number_width - 1; ++x)
     {
-      nbe_framebuffer_draw_character(ctx, x * font_size, y * font_size, '0', color, NBE_COLOR_RGB(40, 40, 40));
+      nbe_framebuffer_draw_character(ctx, x * font_size, y * font_size, '0', color);
     }
   }
 }
