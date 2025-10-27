@@ -122,7 +122,8 @@ int start(int argc, char **argv)
         &ctx,
         "This is a test of a very long line that has a very long text which exceeds 80 characters\n"
         "And this is the second row\n"
-        "another thest sdfs sif sa32k 4234 (r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n");
+        "another thest sdfs sif sa32k 4234 (r&&)r)§)$K§K$L§K$L§)§;:_*'+#.,,.,.,.,.,\n"
+        "test");
 
     for (;;)
     {
@@ -147,8 +148,10 @@ int start(int argc, char **argv)
                 case VK_DOWN:
                     break;
                 case VK_LEFT:
+                    nbe_textbuffer_event_cursor_move_left(&ctx);
                     break;
                 case VK_RIGHT:
+                    nbe_textbuffer_event_cursor_move_right(&ctx);
                     break;
                 case VK_ESCAPE:
                     return 0;
