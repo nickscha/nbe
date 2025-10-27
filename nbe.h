@@ -198,28 +198,25 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_char_add(nbe_context *ctx, char c)
   u32 idx = ctx->cursor_textbuffer_index_current;
   u32 i;
 
-  if (c < 32 || c >= 127)
-  {
-    return;
-  }
-
   if (ctx->textbuffer_length >= ctx->textbuffer_capacity - 1)
   {
     return;
   }
 
-  /* Shift characters to the right to make space */
-  for (i = ctx->textbuffer_length; i > idx; --i)
+  if ((c >= 32 && c < 127) || c == '\n')
   {
-    ctx->textbuffer[i] = ctx->textbuffer[i - 1];
+    /* Shift characters to the right to make space */
+    for (i = ctx->textbuffer_length; i > idx; --i)
+    {
+      ctx->textbuffer[i] = ctx->textbuffer[i - 1];
+    }
+
+    /* Insert the new character */
+    ctx->textbuffer[idx] = (u8)c;
+    ctx->textbuffer_length++;
+    ctx->cursor_textbuffer_index_current++;
+    ctx->framebuffer_changed = 1;
   }
-
-  /* Insert the new character */
-  ctx->textbuffer[idx] = (u8)c;
-  ctx->textbuffer_length++;
-  ctx->cursor_textbuffer_index_current++;
-
-  ctx->framebuffer_changed = 1;
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_char_remove(nbe_context *ctx)
@@ -307,12 +304,7 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_toggle_line_numbers(nbe_context *ct
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_line_new(nbe_context *ctx)
 {
-  if (ctx->textbuffer_length < ctx->textbuffer_capacity)
-  {
-    ctx->textbuffer[ctx->textbuffer_length++] = '\n';
-    ctx->cursor_textbuffer_index_current++;
-    ctx->framebuffer_changed = 1;
-  }
+  nbe_textbuffer_event_char_add(ctx, '\n');
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_cursor_move_left(nbe_context *ctx)
