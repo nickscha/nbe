@@ -32,10 +32,10 @@ typedef unsigned int u32;
 typedef unsigned char u8;
 
 #define NBE_COLOR_RGB(r, g, b) ((u32)(((r) << 16) | ((g) << 8) | (b)))
-#define NBE_COLOR_DARKEN(color, percent) \
-  (NBE_COLOR_RGB( \
+#define NBE_COLOR_DARKEN(color, percent)          \
+  (NBE_COLOR_RGB(                                 \
       (((color >> 16) & 0xFF) * (percent) / 100), \
-      (((color >> 8) & 0xFF) * (percent) / 100), \
+      (((color >> 8) & 0xFF) * (percent) / 100),  \
       ((color & 0xFF) * (percent) / 100)))
 #define NBE_U32_MAX(a, b) ((u32)((a) > (b) ? (a) : (b)))
 #define NBE_U32_MIN(a, b) ((u32)((a) < (b) ? (a) : (b)))
@@ -163,33 +163,115 @@ typedef struct nbe_context
 
 } nbe_context;
 
+NBE_API NBE_INLINE void nbe_cursor_position(nbe_context *ctx, u32 *x_out, u32 *y_out)
+{
+  u32 i;
+  u32 x = 0;
+  u32 y = 0;
+
+  for (i = 0; i < ctx->cursor_textbuffer_index_current && i < ctx->textbuffer_length; ++i)
+  {
+    u8 c = ctx->textbuffer[i];
+
+    if (c == '\r')
+    {
+      continue;
+    }
+
+    if (c == '\n')
+    {
+      x = 0;
+      ++y;
+    }
+    else
+    {
+      ++x;
+    }
+  }
+
+  *x_out = x;
+  *y_out = y;
+}
+
 NBE_API NBE_INLINE void nbe_textbuffer_event_char_add(nbe_context *ctx, char c)
 {
-  if (c >= 32 && c < 127 && ctx->textbuffer_length < ctx->textbuffer_capacity)
+  u32 idx = ctx->cursor_textbuffer_index_current;
+  u32 i;
+
+  if (c < 32 || c >= 127)
   {
-    ctx->textbuffer[ctx->textbuffer_length++] = (u8)c;
-    ctx->cursor_textbuffer_index_current++;
+    return;
   }
+
+  if (ctx->textbuffer_length >= ctx->textbuffer_capacity - 1)
+  {
+    return;
+  }
+
+  /* Shift characters to the right to make space */
+  for (i = ctx->textbuffer_length; i > idx; --i)
+  {
+    ctx->textbuffer[i] = ctx->textbuffer[i - 1];
+  }
+
+  /* Insert the new character */
+  ctx->textbuffer[idx] = (u8)c;
+  ctx->textbuffer_length++;
+  ctx->cursor_textbuffer_index_current++;
+
+  ctx->framebuffer_changed = 1;
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_char_remove(nbe_context *ctx)
 {
-  if (ctx->textbuffer_length > 0)
+  u32 idx = ctx->cursor_textbuffer_index_current;
+  u32 i;
+
+  if (ctx->textbuffer_length == 0 || idx == 0)
   {
-    ctx->textbuffer_length--;
-    ctx->cursor_textbuffer_index_current--;
-    ctx->framebuffer_changed = 1;
+    return;
   }
+
+  /* Move cursor back one position */
+  idx--;
+
+  /* Shift remaining characters left to remove the character */
+  for (i = idx; i < ctx->textbuffer_length - 1; ++i)
+  {
+    ctx->textbuffer[i] = ctx->textbuffer[i + 1];
+  }
+
+  ctx->textbuffer_length--;
+  ctx->cursor_textbuffer_index_current = idx;
+
+  ctx->framebuffer_changed = 1;
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_char_delete(nbe_context *ctx)
+{
+  u32 idx = ctx->cursor_textbuffer_index_current;
+  u32 i;
+
+  /* Nothing to delete if cursor is at the end or buffer is empty */
+  if (idx >= ctx->textbuffer_length || ctx->textbuffer_length == 0)
+  {
+    return;
+  }
+
+  /* Shift characters left to overwrite the deleted character */
+  for (i = idx; i < ctx->textbuffer_length - 1; ++i)
+  {
+    ctx->textbuffer[i] = ctx->textbuffer[i + 1];
+  }
+
+  ctx->textbuffer_length--;
+  ctx->framebuffer_changed = 1;
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_indent(nbe_context *ctx)
 {
-  if (ctx->textbuffer_length + 1 < ctx->textbuffer_capacity)
-  {
-    ctx->textbuffer[ctx->textbuffer_length++] = ' ';
-    ctx->textbuffer[ctx->textbuffer_length++] = ' ';
-    ctx->cursor_textbuffer_index_current += 2;
-  }
+  nbe_textbuffer_event_char_add(ctx, ' ');
+  nbe_textbuffer_event_char_add(ctx, ' ');
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_increase(nbe_context *ctx)
@@ -262,36 +344,6 @@ NBE_API NBE_INLINE void nbe_textbuffer_append(nbe_context *ctx, char *src)
 
   ctx->textbuffer[ctx->textbuffer_length] = 0; /* always keep null-terminated */
   ctx->cursor_textbuffer_index_current = ctx->textbuffer_length;
-}
-
-NBE_API NBE_INLINE void nbe_cursor_position(nbe_context *ctx, u32 *x_out, u32 *y_out)
-{
-  u32 i;
-  u32 x = 0;
-  u32 y = 0;
-
-  for (i = 0; i < ctx->cursor_textbuffer_index_current && i < ctx->textbuffer_length; ++i)
-  {
-    u8 c = ctx->textbuffer[i];
-
-    if (c == '\r')
-    {
-      continue;
-    }
-
-    if (c == '\n')
-    {
-      x = 0;
-      ++y;
-    }
-    else
-    {
-      ++x;
-    }
-  }
-
-  *x_out = x;
-  *y_out = y;
 }
 
 NBE_API NBE_INLINE void nbe_framebuffer_clear(nbe_context *ctx, u32 color)

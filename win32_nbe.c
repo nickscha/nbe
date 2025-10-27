@@ -143,6 +143,9 @@ int start(int argc, char **argv)
                 case VK_F1:
                     nbe_textbuffer_event_toggle_line_numbers(&ctx);
                     break;
+                case VK_DELETE:
+                    nbe_textbuffer_event_char_delete(&ctx);
+                    break;
                 case VK_UP:
                     break;
                 case VK_DOWN:
