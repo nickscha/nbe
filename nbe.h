@@ -160,6 +160,76 @@ typedef struct nbe_context
 
 } nbe_context;
 
+NBE_API NBE_INLINE void nbe_textbuffer_event_char_add(nbe_context *ctx, char c)
+{
+  if (c >= 32 && c < 127 && ctx->textbuffer_length < ctx->textbuffer_capacity)
+  {
+    ctx->textbuffer[ctx->textbuffer_length++] = (u8)c;
+    ctx->cursor_textbuffer_index++;
+  }
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_char_remove(nbe_context *ctx)
+{
+  if (ctx->textbuffer_length > 0)
+  {
+    ctx->textbuffer_length--;
+    ctx->cursor_textbuffer_index--;
+    ctx->framebuffer_changed = 1;
+  }
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_indent(nbe_context *ctx)
+{
+  if (ctx->textbuffer_length + 1 < ctx->textbuffer_capacity)
+  {
+    ctx->textbuffer[ctx->textbuffer_length++] = ' ';
+    ctx->textbuffer[ctx->textbuffer_length++] = ' ';
+    ctx->cursor_textbuffer_index += 2;
+  }
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_increase(nbe_context *ctx)
+{
+  if ((ctx->font_scale + 1) * NBE_FONT_SIZE <= ctx->framebuffer_height)
+  {
+    ctx->font_scale++;
+    ctx->framebuffer_changed = 1;
+  }
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_decrease(nbe_context *ctx)
+{
+  if (ctx->font_scale > 1)
+  {
+    ctx->font_scale--;
+    ctx->framebuffer_changed = 1;
+  }
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_toggle_line_numbers(nbe_context *ctx)
+{
+  if (ctx->line_number_width == 5)
+  {
+    ctx->line_number_width = 0;
+  }
+  else
+  {
+    ctx->line_number_width = 5;
+  }
+  ctx->framebuffer_changed = 1;
+}
+
+NBE_API NBE_INLINE void nbe_textbuffer_event_line_new(nbe_context *ctx)
+{
+  if (ctx->textbuffer_length < ctx->textbuffer_capacity)
+  {
+    ctx->textbuffer[ctx->textbuffer_length++] = '\n';
+    ctx->cursor_textbuffer_index++;
+    ctx->framebuffer_changed = 1;
+  }
+}
+
 NBE_API NBE_INLINE void nbe_textbuffer_append(nbe_context *ctx, char *src)
 {
   u32 i = 0;

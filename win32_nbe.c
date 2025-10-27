@@ -133,29 +133,14 @@ int start(int argc, char **argv)
 
             if (msg.message == WM_CHAR)
             {
-                char c = (char)msg.wParam;
-
-                /* Add char */
-                if (c >= 32 && c < 127 && ctx.textbuffer_length < ctx.textbuffer_capacity)
-                {
-                    ctx.textbuffer[ctx.textbuffer_length++] = (u8)c;
-                    ctx.cursor_textbuffer_index++;
-                }
+                nbe_textbuffer_event_char_add(&ctx, (char)msg.wParam);
             }
             else if (msg.message == WM_KEYDOWN)
             {
                 switch (msg.wParam)
                 {
                 case VK_F1:
-                    if (ctx.line_number_width == 5)
-                    {
-                        ctx.line_number_width = 0;
-                    }
-                    else
-                    {
-                        ctx.line_number_width = 5;
-                    }
-                    ctx.framebuffer_changed = 1;
+                    nbe_textbuffer_event_toggle_line_numbers(&ctx);
                     break;
                 case VK_UP:
                     if (ctx.cursor_scroll_y > 0)
@@ -182,51 +167,26 @@ int start(int argc, char **argv)
                 case VK_ESCAPE:
                     return 0;
                 case VK_TAB:
-                    if (ctx.textbuffer_length + 1 < ctx.textbuffer_capacity)
-                    {
-                        ctx.textbuffer[ctx.textbuffer_length++] = ' ';
-                        ctx.textbuffer[ctx.textbuffer_length++] = ' ';
-                        ctx.cursor_textbuffer_index += 2;
-                        ctx.framebuffer_changed = 1;
-                    }
+                    nbe_textbuffer_event_indent(&ctx);
                     break;
-
                 case VK_BACK:
-                    /* Remove */
-                    if (ctx.textbuffer_length > 0)
-                    {
-                        ctx.textbuffer_length--;
-                        ctx.framebuffer_changed = 1;
-                        ctx.cursor_textbuffer_index--;
-                        ctx.framebuffer_changed = 1;
-                    }
+                    nbe_textbuffer_event_char_remove(&ctx);
                     break;
-
                 case VK_RETURN:
-                    /* New Line */
-                    if (ctx.textbuffer_length < ctx.textbuffer_capacity)
-                    {
-                        ctx.textbuffer[ctx.textbuffer_length++] = '\n';
-                        ctx.cursor_textbuffer_index++;
-                        ctx.framebuffer_changed = 1;
-                    }
+                    nbe_textbuffer_event_line_new(&ctx);
                     break;
-
                 case VK_OEM_PLUS:
                 case VK_ADD:
-                    if (GetKeyState(VK_CONTROL) & 0x8000 && ((ctx.font_scale + 1) * NBE_FONT_SIZE) <= ctx.framebuffer_height)
+                    if (GetKeyState(VK_CONTROL) & 0x8000)
                     {
-                        ctx.font_scale++;
-                        ctx.framebuffer_changed = 1;
+                        nbe_textbuffer_event_font_scale_increase(&ctx);
                     }
                     break;
-
                 case VK_OEM_MINUS:
                 case VK_SUBTRACT:
-                    if (GetKeyState(VK_CONTROL) & 0x8000 && ctx.font_scale > 1)
+                    if (GetKeyState(VK_CONTROL) & 0x8000)
                     {
-                        ctx.font_scale--;
-                        ctx.framebuffer_changed = 1;
+                        nbe_textbuffer_event_font_scale_decrease(&ctx);
                     }
                     break;
                 }
