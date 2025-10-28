@@ -124,7 +124,8 @@ int start(int argc, char **argv)
     ctx.textbuffer = textbuffer;
     ctx.textbuffer_capacity = TB_CAPACITY;
     ctx.textbuffer_length = 0;
-    ctx.font_scale = 1.0f;
+    ctx.font_glpyh_width = NBE_FONT_GLYPH_WIDTH;
+    ctx.font_glpyh_height = NBE_FONT_GLYPH_HEIGHT;
 
     g_ctx = &ctx;
 

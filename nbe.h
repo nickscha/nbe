@@ -30,7 +30,6 @@ LICENSE
 
 typedef unsigned int u32;
 typedef unsigned char u8;
-typedef float f32;
 
 #define NBE_COLOR_RGB(r, g, b) ((u32)(((r) << 16) | ((g) << 8) | (b)))
 #define NBE_COLOR_DARKEN(color, percent) (NBE_COLOR_RGB( \
@@ -42,7 +41,6 @@ typedef float f32;
 
 NBE_STATIC_ASSERT(sizeof(u8) == 1, u8_size_must_be_1);
 NBE_STATIC_ASSERT(sizeof(u32) == 4, u32_size_must_be_4);
-NBE_STATIC_ASSERT(sizeof(f32) == 4, f32_size_must_be_4);
 
 #define NBE_FONT_GLYPH_WIDTH 13
 #define NBE_FONT_GLYPH_HEIGHT 30
@@ -537,7 +535,8 @@ typedef struct nbe_context
   u32 textbuffer_length;   /* The current length of the text */
   u32 textbuffer_capacity; /* The maximum size of the text */
 
-  f32 font_scale;
+  u32 font_glpyh_width;
+  u32 font_glpyh_height;
 
   u32 cursor_textbuffer_index_current; /* To which textbuffer position is the current cursor pointing */
 
@@ -696,28 +695,33 @@ NBE_API NBE_INLINE void nbe_textbuffer_event_indent(nbe_context *ctx)
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_increase(nbe_context *ctx)
 {
-  f32 new_scale = ctx->font_scale + 0.1f;
+  u32 new_width = ctx->font_glpyh_width + 1;
+  u32 new_height = ctx->font_glpyh_height + 1;
 
-  if (new_scale * NBE_FONT_GLYPH_HEIGHT <= ctx->framebuffer_height)
+  if (new_height <= ctx->framebuffer_height && new_width <= ctx->framebuffer_width)
   {
-    ctx->font_scale = new_scale;
+    ctx->font_glpyh_width = new_width;
+    ctx->font_glpyh_height = new_height;
     ctx->framebuffer_changed = 1;
   }
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_reset(nbe_context *ctx)
 {
-  ctx->font_scale = 1.0f;
+  ctx->font_glpyh_width = NBE_FONT_GLYPH_WIDTH;
+  ctx->font_glpyh_height = NBE_FONT_GLYPH_HEIGHT;
   ctx->framebuffer_changed = 1;
 }
 
 NBE_API NBE_INLINE void nbe_textbuffer_event_font_scale_decrease(nbe_context *ctx)
 {
-  f32 new_scale = ctx->font_scale - 0.1f;
+  u32 new_width = ctx->font_glpyh_width - 1;
+  u32 new_height = ctx->font_glpyh_height - 1;
 
-  if (new_scale >= 0.1f)
+  if (new_height > 3 && new_width > 3)
   {
-    ctx->font_scale = new_scale;
+    ctx->font_glpyh_width = new_width;
+    ctx->font_glpyh_height = new_height;
     ctx->framebuffer_changed = 1;
   }
 }
@@ -839,49 +843,39 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_pixel(nbe_context *ctx, u32 x, u32 
 
 NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, u32 y, u8 c, u32 color_fg)
 {
-  u32 bytes_per_row;
-  u32 glyph_size;
+  u32 base_bytes_per_row;
+  u32 base_glyph_size;
   u32 glyph_index;
   u8 *glyph;
   u32 row, col;
-  f32 scale;
 
   if (c < 32 || c > 126)
   {
     return;
   }
 
-  bytes_per_row = (NBE_FONT_GLYPH_WIDTH + 7) / 8;
-  glyph_size = bytes_per_row * NBE_FONT_GLYPH_HEIGHT;
-  glyph_index = (c - 32) * glyph_size;
+  base_bytes_per_row = (NBE_FONT_GLYPH_WIDTH + 7) / 8;
+  base_glyph_size = base_bytes_per_row * NBE_FONT_GLYPH_HEIGHT;
+  glyph_index = (c - 32) * base_glyph_size;
   glyph = &nbe_font[glyph_index];
 
-  scale = ctx->font_scale;
-
-  for (row = 0; row < NBE_FONT_GLYPH_HEIGHT; ++row)
+  for (row = 0; row < ctx->font_glpyh_height; ++row)
   {
-    for (col = 0; col < NBE_FONT_GLYPH_WIDTH; ++col)
-    {
-      u32 byte_index = row * bytes_per_row + (col / 8);
-      u8 bit_mask = 1 << (7 - (col % 8));
+    /* scale row index into original font */
+    u32 sample_row = (row * NBE_FONT_GLYPH_HEIGHT) / ctx->font_glpyh_height;
 
+    for (col = 0; col < ctx->font_glpyh_width; ++col)
+    {
+      /* scale col index into original font */
+      u32 sample_col = (col * NBE_FONT_GLYPH_WIDTH) / ctx->font_glpyh_width;
+
+      u32 byte_index = sample_row * base_bytes_per_row + (sample_col / 8);
+      u32 bit_mask = (u8)(1 << (7 - (sample_col % 8)));
+
+      /* typical inverted font data (1 = background) */
       if (!(glyph[byte_index] & bit_mask))
       {
-        /* Compute scaled pixel area for this glyph pixel */
-        u32 x0 = (u32)((f32)x + (f32)col * scale);
-        u32 y0 = (u32)((f32)y + (f32)row * scale);
-        u32 x1 = (u32)((f32)x + (f32)(col + 1) * scale);
-        u32 y1 = (u32)((f32)y + (f32)(row + 1) * scale);
-
-        u32 yy, xx;
-
-        for (yy = y0; yy < y1; ++yy)
-        {
-          for (xx = x0; xx < x1; ++xx)
-          {
-            nbe_framebuffer_draw_pixel(ctx, xx, yy, color_fg);
-          }
-        }
+        nbe_framebuffer_draw_pixel(ctx, x + col, y + row, color_fg);
       }
     }
   }
@@ -889,12 +883,9 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_character(nbe_context *ctx, u32 x, 
 
 NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
 {
-  f32 font_size_width = NBE_FONT_GLYPH_WIDTH * ctx->font_scale;
-  f32 font_size_height = NBE_FONT_GLYPH_HEIGHT * ctx->font_scale;
-
   /* How many cells (i.e. characters) fit horizontally / vertically */
-  u32 cell_columns = (u32)((f32)ctx->framebuffer_width / font_size_width);
-  u32 cell_rows = (u32)((f32)ctx->framebuffer_height / font_size_height);
+  u32 cell_columns = ctx->framebuffer_width / ctx->font_glpyh_width;
+  u32 cell_rows = ctx->framebuffer_height / ctx->font_glpyh_height;
 
   /* Pointer to the text starting at the current cursor position */
   u8 *text = ctx->textbuffer;
@@ -915,13 +906,13 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     nbe_cursor_position(ctx, &cursor_col_index, &cursor_row_index);
     cursor_col_index += ctx->line_number_width;
 
-    x = (u32)((f32)cursor_col_index * font_size_width);
-    y = (u32)((f32)cursor_row_index * font_size_height);
+    x = cursor_col_index * ctx->font_glpyh_width;
+    y = cursor_row_index * ctx->font_glpyh_height;
 
     /* fill a full cell with cursor color */
-    for (yy = 0; yy < font_size_height; ++yy)
+    for (yy = 0; yy < ctx->font_glpyh_height; ++yy)
     {
-      for (xx = 0; xx < font_size_width; ++xx)
+      for (xx = 0; xx < ctx->font_glpyh_width; ++xx)
       {
         nbe_framebuffer_draw_pixel(ctx, x + xx, y + yy, NBE_COLOR_DARKEN(color, 60));
       }
@@ -955,8 +946,8 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
       {
         nbe_framebuffer_draw_character(
             ctx,
-            (u32)((f32)col_index * font_size_width),
-            (u32)((f32)row_index * font_size_height),
+            col_index * ctx->font_glpyh_width,
+            row_index * ctx->font_glpyh_height,
             ' ',
             color);
         ++col_index;
@@ -978,8 +969,8 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
     /* Draw the visible character */
     nbe_framebuffer_draw_character(
         ctx,
-        (u32)((f32)col_index * font_size_width),
-        (u32)((f32)row_index * font_size_height),
+        col_index * ctx->font_glpyh_width,
+        row_index * ctx->font_glpyh_height,
         c,
         color);
 
@@ -989,10 +980,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_text(nbe_context *ctx, u32 color)
 
 NBE_API NBE_INLINE void nbe_framebuffer_draw_line_numbers(nbe_context *ctx, u32 color)
 {
-  u32 font_size_width = (u32)(NBE_FONT_GLYPH_WIDTH * ctx->font_scale);
-  u32 font_size_height = (u32)(NBE_FONT_GLYPH_HEIGHT * ctx->font_scale);
-
-  u32 cell_rows = ctx->framebuffer_height / font_size_height;
+  u32 cell_rows = ctx->framebuffer_height / ctx->font_glpyh_height;
 
   u32 x, y;
 
@@ -1005,7 +993,7 @@ NBE_API NBE_INLINE void nbe_framebuffer_draw_line_numbers(nbe_context *ctx, u32 
   {
     for (x = 0; x < ctx->line_number_width - 1; ++x)
     {
-      nbe_framebuffer_draw_character(ctx, x * font_size_width, y * font_size_height, '0', color);
+      nbe_framebuffer_draw_character(ctx, x * ctx->font_glpyh_width, y * ctx->font_glpyh_height, '0', color);
     }
   }
 }
