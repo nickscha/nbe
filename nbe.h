@@ -1,4 +1,4 @@
-/* nbe.h - v0.1 - public domain data structures - nickscha 2025
+/* nbe.h - v0.2 - public domain data structures - nickscha 2025
 
 A C89 standard compliant, nostdlib (no C Standard Library) No Bloat Editor (NBE).
 
