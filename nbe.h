@@ -825,9 +825,23 @@ NBE_API NBE_INLINE void nbe_textbuffer_append(nbe_context *ctx, char *src)
 NBE_API NBE_INLINE void nbe_framebuffer_clear(nbe_context *ctx, u32 color)
 {
   u32 *p = ctx->framebuffer;
-  u32 *end = p + (ctx->framebuffer_width * ctx->framebuffer_height);
+  u32 count = ctx->framebuffer_width * ctx->framebuffer_height;
+  u32 n = count / 8;
+  u32 r = count % 8;
 
-  while (p < end)
+  while (n--)
+  {
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+    *p++ = color;
+  }
+
+  while (r--)
   {
     *p++ = color;
   }
