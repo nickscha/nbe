@@ -1,8 +1,6 @@
 # nbe
 A C89 standard compliant, nostdlib (no C Standard Library) No Bloat Editor (NBE).
 
-For more information please look at the "nbe.h" file or take a look at the "examples" or "tests" folder.
-
 > [!WARNING]
 > THIS PROJECT IS A WORK IN PROGRESS! ANYTHING CAN CHANGE AT ANY MOMENT WITHOUT ANY NOTICE! USE THIS PROJECT AT YOUR OWN RISK!
 
@@ -25,7 +23,6 @@ For more information please look at the "nbe.h" file or take a look at the "exam
 - **Single-header API** — just include `nbe.h`  
 - **nostdlib** — no dependency on the C Standard Library  
 - **Minimal binary size** — optimized for small executables  
-- **Cross-platform** — Windows, Linux, MacOs 
 - **Strict compilation** — built with aggressive warnings & safety checks  
 
 ## Quick Start
@@ -40,11 +37,6 @@ int main() {
     return 0;
 }
 ```
-
-## Run Example: nostdlib, freestsanding
-
-In this repo you will find the "examples/nbe_win32_nostdlib.c" with the corresponding "build.bat" file which
-creates an executable only linked to "kernel32" and is not using the C standard library and executes the program afterwards.
 
 ## "nostdlib" Motivation & Purpose
 
